@@ -1,0 +1,151 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>Pub/Sub with jQuery.Callbacks()</title>
+    <style>
+        body {
+            background: url(http://halgatewood.com/wp-content/uploads/2011/10/linen_bg_tile.jpg);
+        }
+
+        h1 {
+            font-weight: lighter;
+            font-family: "Times New roman", Arial, Verdana;
+            padding: 0;
+            margin: 0;
+        }
+
+        h2 {
+            font-size: 14px;
+            color: rgb(162, 145, 92);
+        }
+
+        .produtos {
+            width: 350px;
+            height: auto;
+
+            padding: 20px;
+
+            left: calc(100% - 50% - (350px / 2));
+            top: calc(100% - 50% - (350px / 2));
+
+            position: absolute;
+
+            background-color: #ffe1b2;
+            border: 2px dashed #bda682;
+
+            box-shadow: 0 0 5px 16px rgb(58, 58, 58);
+
+            outline: 12px solid #ffe1b2;
+
+            box-sizing: border-box;
+        }
+
+        li span {
+            display: none;
+            float: right;
+            color: red;
+            cursor: pointer;
+        }
+
+        li:hover {
+            background: #FFEED3;
+        }
+
+            li:hover span {
+                display: block;
+            }
+    </style>
+</head>
+<body>
+    <div class="produtos">
+        <h1>Produtos</h1>
+        <h2>Total: <span id="total">5</span></h2>
+        <ul>
+            <li>Banana<span>x</span></li>
+            <li>Maçã<span>x</span></li>
+            <li>Uva<span>x</span></li>
+            <li>Melancia<span>x</span></li>
+            <li>Abacaxi<span>x</span></li>
+        </ul>
+        <input type="text"><input type="button" value="Add">
+    </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+    <script>
+        (function ($) {
+
+            // Nos definimos nosso topico
+
+            var topics = {};
+
+            $.Topic = function (id) {
+                var callbacks,
+                    method,
+                    topic = id && topics[id];
+
+                if (!topic) {
+                    callbacks = jQuery.Callbacks();
+                    topic = {
+                        publish: callbacks.fire,
+                        subscribe: callbacks.add,
+                        unsubscribe: callbacks.remove
+                    };
+                    if (id) {
+                        topics[id] = topic;
+                    }
+                }
+                return topic;
+            };
+
+            // Abaixo duas funções básicas, uma para 
+            // verificar a quantidade de produtos
+            // e por fim, checar o estoque
+
+            function TotalProdutos(quantidade) {
+                $('#total').text(quantidade);
+            };
+
+            function Estoque(quantidade) {
+                if (!quantidade)
+                    alert("Ops! corre pro mercado!");
+            };
+
+            // Aqui nossas funcoes se inscrevem no topico QuantidadeProdutos
+
+            $.Topic('QuantidadeProdutos').subscribe(TotalProdutos);
+            $.Topic('QuantidadeProdutos').subscribe(Estoque);
+
+
+            // Sempre que um produto for removido
+            // nos iremos disparar uma notificacao
+            // no topico QuantidadeProdutos, e todos que
+            // estivem inscrito nele, receberam o chamado
+
+            $('ul').on('click', 'span', function () {
+                $(this).parent().remove();
+
+                var totalProdutos = $('ul li').length;
+
+                $.Topic('QuantidadeProdutos').publish(totalProdutos);
+            });
+
+            // Aqui nos incluimos novos produtos
+
+            $('[type=button]').click(function () {
+                var produto = $('[type=text]').val(),
+                    template = $('<li>' + produto + '<span>x</span></li>');
+
+                $('ul').append(template);
+
+                var totalProdutos = $('ul li').length;
+
+                $.Topic('QuantidadeProdutos').publish(totalProdutos);
+
+                $('[type=text]').val('');
+            });
+
+        })(jQuery);
+    </script>
+</body>
+</html>
